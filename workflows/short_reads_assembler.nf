@@ -7,7 +7,6 @@
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
-
 include { SHORT_READS_QC                } from '../subworkflows/local/short_reads_qc'
 include { SHORT_READS_ASSEMBLY_QC       } from '../subworkflows/local/short_reads_assembly_qc'
 include { SHORT_READS_ASSEMBLY_COVERAGE } from '../subworkflows/local/short_reads_assembly_coverage'
@@ -124,9 +123,11 @@ workflow SHORT_READS_ASSEMBLER {
     )
     ch_versions = ch_versions.mix(MEGAHIT.out.versions)
 
-    def assembly = SPADES.out.contigs.mix(MEGAHIT.out.contigs)
+    // Historical MGnify/ENA TPA submissions were based on metaSPAdes scaffolds
+    // (e.g. *.scaffolds.min500.fasta.gz), not SPAdes contigs.fasta.
+    def assembly = SPADES.out.scaffolds.mix(MEGAHIT.out.contigs)
 
-    // Clean the assembly contigs //
+    // Filter to >=500 bp and perform configured post-assembly decontamination.
     SHORT_READS_ASSEMBLY_QC(assembly)
     ch_versions = ch_versions.mix(SHORT_READS_ASSEMBLY_QC.out.versions)
 
