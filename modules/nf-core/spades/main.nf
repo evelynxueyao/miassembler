@@ -3,8 +3,8 @@ process SPADES {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/spades:3.15.5--h95f258a_1' :
-        'biocontainers/spades:3.15.5--h95f258a_1' }"
+        'docker://staphb/spades:3.12.0' :
+        'staphb/spades:3.12.0' }"
 
     input:
     tuple val(meta), path(illumina), path(pacbio), path(nanopore)
