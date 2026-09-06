@@ -9,11 +9,11 @@ process PUBLISH_CLEANED_CONTIGS {
     tuple val(meta), path(cleaned_contigs)
 
     output:
-    tuple val(meta), path("${meta.id}_cleaned.contigs.fa.gz")
+    tuple val(meta), path("contig.fa.gz")
 
     script:
     """
-    cp ${cleaned_contigs} ${meta.id}_cleaned.contigs.fa.gz
+    cp ${cleaned_contigs} contig.fa.gz
     """
 }
 
@@ -125,6 +125,8 @@ workflow SHORT_READS_ASSEMBLY_QC {
         [meta + ["too_few_contigs": true], contigs]
     }
 
+    // Publish the final >=500 bp, decontaminated scaffold assembly using the
+    // ENA archive-style filename expected by MiCoRe downstream processing.
     PUBLISH_CLEANED_CONTIGS(
         passed_cleaned_contigs
     )
