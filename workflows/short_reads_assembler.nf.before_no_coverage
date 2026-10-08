@@ -131,8 +131,13 @@ workflow SHORT_READS_ASSEMBLER {
     SHORT_READS_ASSEMBLY_QC(assembly)
     ch_versions = ch_versions.mix(SHORT_READS_ASSEMBLY_QC.out.versions)
 
-    // Coverage disabled: cleaned contigs are the endpoint
+    // Coverage //
+    SHORT_READS_ASSEMBLY_COVERAGE(
+        SHORT_READS_ASSEMBLY_QC.out.passed_cleaned_contigs.join(SHORT_READS_QC.out.qc_reads),
+        SHORT_READS_QC.out.fastp_json
+    )
 
+    ch_versions = ch_versions.mix(SHORT_READS_ASSEMBLY_COVERAGE.out.versions)
 
     // Stats //
     /* The QUAST module was modified to run metaQUAST instead */
@@ -151,11 +156,11 @@ workflow SHORT_READS_ASSEMBLER {
     ch_versions = ch_versions.mix(QUAST.out.versions)
 
     emit:
-    cleaned_contigs     = SHORT_READS_ASSEMBLY_QC.out.passed_cleaned_contigs
-    fastqc_before_zip   = FASTQC_BEFORE.out.zip
-    qc_failed_all       = qc_failed_all
-    fastqc_after_zip    = FASTQC_AFTER.out.zip
-    quast_results       = QUAST.out.results
-    versions            = ch_versions
+    fastqc_before_zip                    = FASTQC_BEFORE.out.zip                                // tuple(meta)
+    qc_failed_all                        = qc_failed_all                                        // tuple(meta)
+    fastqc_after_zip                     = FASTQC_AFTER.out.zip                                 // tuple(meta)
+    assembly_coverage_samtools_idxstats  = SHORT_READS_ASSEMBLY_COVERAGE.out.samtools_idxstats  // tuple(meta)
+    quast_results                        = QUAST.out.results                                    // tuple(meta)
+    versions                             = ch_versions
 }
 

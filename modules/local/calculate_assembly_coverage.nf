@@ -5,8 +5,8 @@ process CALCULATE_ASSEMBLY_COVERAGE {
     label 'process_single'
 
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/python:3.10' :
-        'quay.io/biocontainers/python:3.10' }"
+        'docker://python:3.10-slim' :
+        'python:3.10-slim' }"
 
     input:
     tuple val(meta), path(jgi_summary_tsv_gz), path(fastp_json)

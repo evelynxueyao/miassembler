@@ -325,8 +325,8 @@ workflow MIASSEMBLER {
         .mix(LONG_READS_ASSEMBLER.out.fastqc_before_zip)
     def fastqc_after_zip = SHORT_READS_ASSEMBLER.out.fastqc_after_zip
         .mix(LONG_READS_ASSEMBLER.out.fastqc_after_zip)
-    def assembly_coverage_samtools_idxstats = SHORT_READS_ASSEMBLER.out.assembly_coverage_samtools_idxstats
-        .mix(LONG_READS_ASSEMBLER.out.assembly_coverage_samtools_idxstats)
+    def assembly_coverage_samtools_idxstats =
+        LONG_READS_ASSEMBLER.out.assembly_coverage_samtools_idxstats
     def quast_results = SHORT_READS_ASSEMBLER.out.quast_results
         .mix(LONG_READS_ASSEMBLER.out.quast_results)
 
@@ -359,12 +359,14 @@ workflow MIASSEMBLER {
 
     def run_multiqc_files = SHORT_READS_ASSEMBLER.out.fastqc_before_zip.map(meta_by_run)
         .join(SHORT_READS_ASSEMBLER.out.fastqc_after_zip.map(meta_by_run))
-        .join(SHORT_READS_ASSEMBLER.out.assembly_coverage_samtools_idxstats.map(meta_by_run), remainder: true) // the assembly step could fail
-        .join(SHORT_READS_ASSEMBLER.out.quast_results.map(meta_by_run), remainder: true)                       // the assembly step could fail
-
+        .join(SHORT_READS_ASSEMBLER.out.quast_results.map(meta_by_run), remainder: true)
+        .map { meta, fastqc_before, fastqc_after, quast ->
+            [meta, fastqc_before, fastqc_after, null, quast]
+        }
     // Filter out the non-assembled runs //
-    def ch_multiqc_run_tools_files = run_multiqc_files.filter { _meta, _fastqc_before, _fastqc_after, assembly_coverage, quast -> {
-            return assembly_coverage != null && quast != null
+    def ch_multiqc_run_tools_files = run_multiqc_files.filter {
+        _meta, _fastqc_before, _fastqc_after, _assembly_coverage, quast -> {
+            return quast != null
         }
     }.flatMap(combineFiles).groupTuple()
 
@@ -386,14 +388,18 @@ workflow MIASSEMBLER {
     // TODO: we need to add LR end-of-run reports
 
     // Short reads asssembled runs //
-    SHORT_READS_ASSEMBLER.out.assembly_coverage_samtools_idxstats
+    SHORT_READS_ASSEMBLER.out.cleaned_contigs
         .map { meta, __ ->
             {
                 return "${meta.id},${meta.assembler},${meta.assembler_version}"
             }
         }
-        .collectFile(name: "assembled_runs.csv", storeDir: "${params.outdir}", newLine: true, cache: false)
-
+        .collectFile(
+            name: "assembled_runs.csv",
+            storeDir: "${params.outdir}",
+            newLine: true,
+            cache: false
+        )
     // Short reads and assembly QC failed //
 
     def short_reads_qc_failed_entries = SHORT_READS_ASSEMBLER.out.qc_failed_all.map {
